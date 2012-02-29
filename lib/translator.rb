@@ -40,10 +40,14 @@ module Translator
                      "datetime.prompts.minute", "datetime.prompts.second", "helpers.select.prompt", "helpers.submit.create", 
                      "helpers.submit.update", "helpers.submit.submit"]
 
-  def self.setup_backend(simple_backend)
+  def self.setup_backend(simple_backend, chain = true)
     @simple_backend = simple_backend
 
-    I18n::Backend::Chain.new(I18n::Backend::KeyValue.new(@current_store), @simple_backend)
+    if chain
+      I18n::Backend::Chain.new(I18n::Backend::KeyValue.new(@current_store), @simple_backend)
+    else
+      I18n::Backend::KeyValue.new(@current_store)
+    end
   end
 
   def self.locales
