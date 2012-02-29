@@ -56,46 +56,55 @@ module Translator
     @current_locale = locales.detect{|l| l == locale_choice.to_sym }
   end
 
-  def self.stored_keys_filepath
+  def self.cached_keys_filepath
     FileUtils.mkdir_p File.join(@cache_path, current_locale.to_s)
-    @stored_keys_filepath = File.join(@cache_path, current_locale.to_s, 'stored_keys.json')
+    @cached_keys_filepath = File.join(@cache_path, current_locale.to_s, 'cached_keys.json')
   end
 
-  def self.has_stored_keys?
-    File.exists?(Translator.stored_keys_filepath)
+  def self.locale_keys
+    Translator.current_store.keys("#{Translator.current_locale.to_s}.*")
+  end
+
+  def self.locale_cache_key
+    "i18n.cache.#{Translator.current_locale}.keys"
+  end
+
+  def self.cached_keys
+    Translator.current_store.smembers(Translator.locale_cache_key)
+  end
+
+  def self.cache_keys!
+    Translator.current_store.del(Translator.locale_cache_key)
+    keys_to_cache = Translator.locale_keys.flatten.uniq
+    Rails.logger.debug "Found #{keys_to_cache.size} cache keys"
+    Translator.current_store.multi do
+      keys_to_cache.map{|k| Translator.current_store.sadd(Translator.locale_cache_key, k) }
+    end
   end
 
   def self.store_keys_to_file!
     # Load all the keys for the current locale, stripping off the locale part
-    locale_keys = Translator.current_store.keys("#{Translator.current_locale.to_s}.*").map do |k|
+    Translator.locale_keys.map do |k|
       k.sub(/^#{Translator.current_locale.to_s}\./, '')
     end.uniq
-    File.open(Translator.stored_keys_filepath, 'w') do |f|
+    File.open(Translator.cached_keys_filepath, 'w') do |f|
       f.puts ActiveSupport::JSON.encode(locale_keys)
     end
   end
 
-  def self.stored_keys(force = false)
-    return @stored_keys if !force && Translator.has_stored_keys? && @stored_keys
-
-    Rails.logger.debug "falling through to stored_keys method"
-    # Passing true into this method forces a cache file rewrite for the current locale.
-    Translator.store_keys_to_file! if force
-    
-    # Check again if the cache file exists...
-    if Translator.has_stored_keys?
-      Rails.logger.debug "populating @stored_keys from cached json"
+  def self.load_cached_keys_from_file(force = false)
+    # Check if the cache file exists...
+    if File.exists?(Translator.cached_keys_filepath)
       # decode the cached json
-      @stored_keys = ActiveSupport::JSON.decode(File.read(Translator.stored_keys_filepath))
+      @cached_keys = ActiveSupport::JSON.decode(File.read(Translator.cached_keys_filepath))
     end
-    Rails.logger.debug "stored keys size: #{@stored_keys.size}"
-    @stored_keys || []
+    @cached_keys || []
   end
 
   def self.keys_for_strings(options = {})
     @simple_backend.available_locales
 
-    keys = Translator.stored_keys
+    keys = Translator.cached_keys
 
     if options[:filter]
       keys = keys.select {|k| k[0, options[:filter].size] == options[:filter]}
@@ -103,7 +112,7 @@ module Translator
 
     case options[:group].to_s
     when "framework"
-      keys.select! {|k| @framework_keys.include?(k) }
+      keys = keys.select {|k| @framework_keys.include?(k) }
     when "application"
       keys -= @framework_keys
     end
