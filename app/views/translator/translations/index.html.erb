@@ -2,13 +2,10 @@
   <div id="header">
     <h1>Translations</h1>
     <ul id="groups">
-      <li><%= link_to_unless_current "All", translations_group_path("all"), class: 'button' %></li>
-      <li><%= link_to_unless_current "Application", translations_group_path("application"), class: 'button' %></li>
-      <li><%= link_to_unless_current "Framework", translations_group_path("framework"), class: 'button' %></li>
-      <li><%= link_to_unless_current "Deleted", translations_group_path("deleted"), class: 'button' %></li>
+      <%= group_links %>
     </ul>
 
-    <%= form_tag translations_group_path(params[:group]), method: "get" do %>
+    <%= form_tag translations_group_path(params[:group]), :method => "get" do %>
       <%= label_tag :key, "Filter: " %>
       <%= text_field_tag :search, params[:search], :placeholder => "Search for text..." %>
       <%= select_tag :key, options_for_select(@sections.collect {|k| [k.humanize, k]}.unshift(["All sections", nil]), params[:key]) %>
@@ -36,12 +33,12 @@
       </h2>
 
       <% if params[:group] && params[:group] == 'deleted' %>
-        <%= link_to 'destroy', translation_path(id: key.gsub('.','-')),
-                      remote: true,
-                      method: :delete,
-                      confirm: 'Are you sure? This operation is irreversible.',
-                      class: 'button warning',
-                      title: 'Clear form database as translation no longer exists in default language file.'
+        <%= link_to 'destroy', translation_path(:id => key.gsub('.','-')),
+                      :remote => true,
+                      :method => :delete,
+                      :confirm => 'Are you sure? This operation is irreversible.',
+                      :class => 'button warning',
+                      :title => 'Clear form database as translation no longer exists in default language file.'
         %>
       <% end %>
       <% Translator.locales.each do |locale| %>
@@ -50,20 +47,11 @@
     </div>
   <% end %>
 
-  <% unless @total_pages < 2 %>
+  <% if @total_pages.present? && @total_pages > 2 %>
     <% (1..@total_pages).each do |p| %>
       <%= link_to_unless_current p, translations_path(:group => params[:group], :page => p), :class => "button small" %>
     <% end %>
   <% end %>
-</div>
-
-<div id="footer">
-  <div id="shameless">
-    Brought to you by <%= link_to "AmberBit", "http://amberbit.com" %> Ruby on Rails web development team.
-    <br/>
-    2010-2011 &copy; Hubert Łępicki &lt;hubert.lepicki@amberbit.com&gt;
-  </div>
-  <%= link_to image_tag("http://amberbit.com/images/logo.png"), "http://amberbit.com" %>
 </div>
 
 <script type="text/javascript">
