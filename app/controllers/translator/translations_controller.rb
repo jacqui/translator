@@ -26,6 +26,7 @@ module Translator
     def index
       section = params[:key].present? && params[:key] + '.'
       params[:group] = "application" unless params["group"]
+      @locales = Translator.locales
       @sections = ['countries', 'participants'] #Translator.keys_for_strings(:group => params[:group]).map {|k| k = k.scan(/^[a-z0-9\-_]*\./)[0]; k ? k.gsub('.', '') : false}.select{|k| k}.uniq.sort
       @keys = Translator.cached_keys #keys_for_strings(:group => params[:group], :filter => section)
 #      if params[:search]

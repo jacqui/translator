@@ -1,10 +1,7 @@
 <%= form_tag translations_path, :id => "#{locale}.#{key}".gsub('.', '-'), :class => "translate", "data-remote" => true, :method => "post" do %>
   <%= hidden_field_tag :key, "#{locale}.#{key}" %>
 
-  <span class='locale'><%= locale %>: </span><%= text_field_tag :value, val = (begin I18n.backend.translate locale, key; rescue; end) %>
+  <span class='locale'><%= locale %>: </span><%= text_field_tag :value, "value tk" %>
   <%= submit_tag "Save", "data-disable-with" => "Saving...", :class => 'button' %>
-  <% if (default_val = (begin Translator.simple_backend.translate locale, key; rescue; end;)) != val %>
-    <%= link_to "Default", '#', "data-recover" => default_val || "", :class => "button" %>
-  <% end %>
 <% end %>
 

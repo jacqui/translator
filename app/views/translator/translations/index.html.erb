@@ -41,7 +41,7 @@
                       :title => 'Clear form database as translation no longer exists in default language file.'
         %>
       <% end %>
-      <% Translator.locales.each do |locale| %>
+      <% @locales.each do |locale| %>
         <%= render :partial => "form", :locals => {:locale => locale, :key => key} %>
       <% end %>
     </div>
