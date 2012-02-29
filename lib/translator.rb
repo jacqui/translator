@@ -2,7 +2,7 @@ require 'translator/engine' if defined?(Rails) && Rails::VERSION::MAJOR == 3
 
 module Translator
   class << self
-    attr_accessor :auth_handler, :current_store, :framework_keys
+    attr_accessor :auth_handler, :cache_path, :current_store, :framework_keys, :current_locale, :stored_keys
     attr_reader :simple_backend
     attr_writer :layout_name
   end
@@ -40,33 +40,62 @@ module Translator
                      "datetime.prompts.minute", "datetime.prompts.second", "helpers.select.prompt", "helpers.submit.create", 
                      "helpers.submit.update", "helpers.submit.submit"]
 
-  def self.setup_backend(simple_backend, chain = true)
-    @simple_backend = simple_backend
-
-    if chain
-      I18n::Backend::Chain.new(I18n::Backend::KeyValue.new(@current_store), @simple_backend)
-    else
-      I18n::Backend::KeyValue.new(@current_store)
-    end
+  def self.setup_backend
+    I18n.backend = @simple_backend = I18n::Backend::KeyValue.new(@current_store)
   end
 
   def self.locales
     @simple_backend.available_locales
   end
 
+  def self.current_locale
+    @current_locale || I18n.default_locale || :en
+  end
+
+  def self.choose_locale(locale_choice)
+    @current_locale = locales.detect{|l| l == locale_choice.to_sym }
+  end
+
+  def self.stored_keys_filepath
+    FileUtils.mkdir_p File.join(@cache_path, current_locale.to_s)
+    @stored_keys_filepath = File.join(@cache_path, current_locale.to_s, 'stored_keys.json')
+  end
+
+  def self.has_stored_keys?
+    File.exists?(Translator.stored_keys_filepath)
+  end
+
+  def self.store_keys_to_file!
+    # Load all the keys for the current locale, stripping off the locale part
+    locale_keys = Translator.current_store.keys("#{Translator.current_locale.to_s}.*").map do |k|
+      k.sub(/^#{Translator.current_locale.to_s}\./, '')
+    end.uniq
+    File.open(Translator.stored_keys_filepath, 'w') do |f|
+      f.puts ActiveSupport::JSON.encode(locale_keys)
+    end
+  end
+
+  def self.stored_keys(force = false)
+    return @stored_keys if !force && Translator.has_stored_keys? && @stored_keys
+
+    Rails.logger.debug "falling through to stored_keys method"
+    # Passing true into this method forces a cache file rewrite for the current locale.
+    Translator.store_keys_to_file! if force
+    
+    # Check again if the cache file exists...
+    if Translator.has_stored_keys?
+      Rails.logger.debug "populating @stored_keys from cached json"
+      # decode the cached json
+      @stored_keys = ActiveSupport::JSON.decode(File.read(Translator.stored_keys_filepath))
+    end
+    Rails.logger.debug "stored keys size: #{@stored_keys.size}"
+    @stored_keys || []
+  end
+
   def self.keys_for_strings(options = {})
     @simple_backend.available_locales
 
-    flat_translations = {}
-    flatten_keys nil, @simple_backend.instance_variable_get("@translations")[:en], flat_translations
-    flat_translations = flat_translations.delete_if {|k,v| !v.is_a?(String) }
-    store_keys = Translator.current_store.keys.map {|k| k.sub(/^\w*\./, '')}
-
-    keys = if options[:group].to_s == "deleted"
-      store_keys - flat_translations.keys
-    else
-      store_keys + flat_translations.keys
-    end.uniq
+    keys = Translator.stored_keys
 
     if options[:filter]
       keys = keys.select {|k| k[0, options[:filter].size] == options[:filter]}
