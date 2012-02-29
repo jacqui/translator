@@ -24,15 +24,16 @@ module Translator
     end
 
     def index
-      section = params[:key].present? && params[:key] + '.'
-      params[:group] = "application" unless params["group"]
-      @sections = Translator.keys_for_strings(:group => params[:group]).map {|k| k = k.scan(/^[a-z0-9\-_]*\./)[0]; k ? k.gsub('.', '') : false}.select{|k| k}.uniq.sort
-      @keys = Translator.keys_for_strings(:group => params[:group], :filter => section)
-      if params[:search]
-        @keys = @keys.select {|k|
-          Translator.locales.any? {|locale| I18n.translate("#{k}", :locale => locale).to_s.downcase.include?(params[:search].downcase)}
-        }
-      end
+#      section = params[:key].present? && params[:key] + '.'
+#      params[:group] = "application" unless params["group"]
+      @sections = Translator.sections
+      @keys = Translator.cached_keys
+        # TODO: implement search
+        #        if params[:search]
+        #          @keys = @keys.select {|k|
+        #            Translator.locales.any? {|locale| I18n.translate("#{k}", :locale => locale).to_s.downcase.include?(params[:search].downcase)}
+        #          }
+        #        end
       @keys = paginate(@keys)
       render :layout => Translator.layout_name
     end
