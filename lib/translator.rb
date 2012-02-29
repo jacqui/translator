@@ -120,6 +120,11 @@ module Translator
     keys || []
   end
 
+  def self.sections
+    ["countries", "disciplines", "events", "irms", "literals", "medals", "month_names", "organizations", "phases", "qualification_codes", "qualification_notes", "stages", "time_formats", "units"]
+    # TODO: port this code
+    # Translator.cached_keys(:group => params[:group]).map {|k| k = k.scan(/^[a-z0-9\-_]*\./)[0]; k ? k.gsub('.', '') : false}.select{|k| k}.uniq.sort
+  end
   def self.layout_name
     @layout_name || "translator"
   end
