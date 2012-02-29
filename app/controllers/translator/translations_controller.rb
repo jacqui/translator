@@ -2,9 +2,30 @@ module Translator
   class TranslationsController < ApplicationController
     before_filter :auth
 
+    def locales
+      @locales = Translator.locales
+      render :layout => Translator.layout_name
+    end
+
+    def choose_locale
+      if params[:locale].blank?
+        flash[:error] = "You must specify a locale!"
+        redirect_to :back && return
+      end
+
+      @locale = Translator.choose_locale(params[:locale])
+      if @locale.present?
+        flash[:notice] = "Set your locale to #{@locale}!"
+        redirect_to translations_path
+      else
+        flash[:error] = "Sorry, #{params[:locale]} is not an available locale."
+        redirect_to :back
+      end
+    end
+
     def index
       section = params[:key].present? && params[:key] + '.'
-      params[:group] = "all" unless params["group"]
+      params[:group] = "application" unless params["group"]
       @sections = Translator.keys_for_strings(:group => params[:group]).map {|k| k = k.scan(/^[a-z0-9\-_]*\./)[0]; k ? k.gsub('.', '') : false}.select{|k| k}.uniq.sort
       @keys = Translator.keys_for_strings(:group => params[:group], :filter => section)
       if params[:search]

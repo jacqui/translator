@@ -1,0 +1,12 @@
+<h1>Available Locales</h1>
+
+<div class="row-fluid">
+  <p>Your current locale is: <%= I18n.locale %></p>
+
+  <h3>Change your locale to:</h3>
+  <ul>
+    <% @locales.each do |locale| %>
+      <li><%= link_to locale, choose_locale_path(:locale => locale) %></li>
+    <% end %>
+  </ul>
+</div>
