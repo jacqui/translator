@@ -3,7 +3,7 @@ source "http://rubygems.org"
 gem "rails", "~> 3.1.0"
 gem "mongo", "1.1"
 gem "bson_ext", ">=1.0.5"
-gem "redis"
+gem "redis", "3.0.0.pre"
 
 if RUBY_VERSION < '1.9'
   gem "ruby-debug", ">= 0.10.3"

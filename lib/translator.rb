@@ -62,7 +62,7 @@ module Translator
   end
 
   def self.locale_keys
-    Translator.current_store.keys("#{Translator.current_locale.to_s}.*")
+    Translator.current_store.keys("#{Translator.current_locale.to_s}.*").uniq
   end
 
   def self.locale_cache_key
@@ -75,11 +75,7 @@ module Translator
 
   def self.cache_keys!
     Translator.current_store.del(Translator.locale_cache_key)
-    keys_to_cache = Translator.locale_keys.flatten.uniq
-    Rails.logger.debug "Found #{keys_to_cache.size} cache keys"
-    Translator.current_store.multi do
-      keys_to_cache.map{|k| Translator.current_store.sadd(Translator.locale_cache_key, k) }
-    end
+    Translator.current_store.sadd(Translator.locale_cache_key, Translator.locale_keys)
   end
 
   def self.store_keys_to_file!
